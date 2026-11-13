@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://paulinho-servicos-gerais.vercel.app/sitemap.xml
