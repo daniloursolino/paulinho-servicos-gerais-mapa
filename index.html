@@ -392,8 +392,9 @@ const map=typeof L==='undefined'?null:L.map(host).setView(centros.Americana,11);
 let markers,chosen;
 if(map){L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_57t7_1_d8b0592fb9c40ab4cbdd1e16',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);markers=L.layerGroup().addTo(map);map.on('click',e=>{if(!logged)return;$('obra-lat').value=e.latlng.lat.toFixed(6);$('obra-lng').value=e.latlng.lng.toFixed(6);if(chosen)chosen.remove();chosen=L.marker(e.latlng).addTo(map);$('save-msg').textContent='Posição selecionada. Preencha os dados e salve.';});}else{host.textContent='Não foi possível carregar o mapa. Verifique sua conexão e recarregue a página.';}
 function criar(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
-function painel(o){
- const p=painelObra;p.replaceChildren();
+let obraAberta=null;
+function painel(o,semRolar){
+ const p=painelObra;p.replaceChildren();obraAberta=o||null;
  if(!o){p.appendChild(criar('h3','','Conheça nossas obras'));p.appendChild(criar('p','hint','Selecione uma obra no mapa ou na lista para ver os detalhes e as fotos.'));return;}
  p.appendChild(criar('h3','',o.titulo));
  const meta=criar('div','meta');meta.appendChild(criar('span','',o.bairro+', '+o.cidade));
@@ -413,7 +414,66 @@ function painel(o){
   mostrar(0);p.appendChild(g);
  }
  const a=criar('a','btn','Quero um serviço assim');a.target='_blank';a.rel='noopener';a.href=wa('Olá! Vi a obra “'+o.titulo+'” no site e quero um orçamento parecido.');a.style.marginTop='14px';p.appendChild(a);
- if(window.innerWidth<=860)p.scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
+ if(logged&&sb)admBotoes(p,o);
+ if(!semRolar&&window.innerWidth<=860)p.scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
+}
+function admBotoes(p,o){
+ const b=criar('div','adm-barra');
+ const ed=criar('button','btn','Editar obra');ed.type='button';ed.onclick=()=>editarObra(o);
+ const ex=criar('button','btn perigo','Excluir obra');ex.type='button';
+ ex.onclick=()=>{b.replaceChildren();b.appendChild(criar('p','hint','Excluir esta obra e as fotos dela? Não dá para desfazer.'));
+  const sim=criar('button','btn perigo','Sim, excluir');sim.type='button';sim.onclick=()=>excluirObra(o,sim);
+  const nao=criar('button','btn','Cancelar');nao.type='button';nao.onclick=()=>painel(o,true);b.append(sim,nao);};
+ b.append(ed,ex);p.appendChild(b);
+}
+async function apagarFotos(urls){
+ const pre=SUPABASE_URL+'/storage/v1/object/public/'+BUCKET+'/';
+ const nomes=urls.filter(u=>typeof u==='string'&&u.indexOf(pre)===0).map(u=>decodeURIComponent(u.slice(pre.length)));
+ if(nomes.length){try{await sb.storage.from(BUCKET).remove(nomes);}catch(e){}}
+}
+async function excluirObra(o,btn){
+ if(!logged||!sb)return;btn.disabled=true;
+ const {data,error}=await sb.from('obras').delete().eq('id',o.id).select('id');
+ if(error||!data||!data.length){btn.disabled=false;btn.parentElement.appendChild(criar('p','hint','Não foi possível excluir. Entre novamente e tente de novo.'));return;}
+ await apagarFotos([o.antes,o.depois].concat(o.fotos||[]));
+ saved=saved.filter(x=>x.id!==o.id);renderObras(atual);
+}
+function editarObra(o){
+ const p=painelObra;p.replaceChildren();p.appendChild(criar('h3','','Editar obra'));
+ const f=document.createElement('form');f.className='edicao';
+ const campo=(rot,el)=>{const l=document.createElement('label');l.append(rot,el);return l;};
+ const tit=document.createElement('input');tit.value=o.titulo;tit.maxLength=160;tit.required=true;
+ const cid=document.createElement('select');[...$('obra-city').options].forEach(x=>{const op=document.createElement('option');op.value=x.value;op.textContent=x.textContent;cid.appendChild(op);});cid.value=o.cidade;
+ const bai=document.createElement('input');bai.value=o.bairro;bai.maxLength=100;bai.required=true;
+ const met=document.createElement('input');met.type='number';met.step='0.01';met.min='0.01';met.max='100000';met.required=true;met.value=o.metragem||'';
+ const obs=document.createElement('textarea');obs.maxLength=500;obs.rows=3;obs.value=o.obs||'';
+ const atuais=[];if(o.antes)atuais.push({u:o.antes,t:'Antes',k:'antes'});if(o.depois)atuais.push({u:o.depois,t:'Depois',k:'depois'});(o.fotos||[]).forEach((u,i)=>atuais.push({u:u,t:'Foto '+(i+1),k:'fotos'}));
+ const grade=criar('div','fotos-atuais');
+ const marcas=atuais.map(it=>{const w=criar('label','foto-edit');const im=document.createElement('img');im.src=it.u;im.alt=it.t;im.loading='lazy';const ck=document.createElement('input');ck.type='checkbox';const l=criar('span');l.append(ck,'Remover '+it.t.toLowerCase());w.append(im,l);grade.appendChild(w);return ck;});
+ const novas=document.createElement('input');novas.type='file';novas.multiple=true;novas.accept='image/jpeg,image/png,image/webp';
+ const msg=criar('p','hint');msg.setAttribute('role','status');
+ const salvar=criar('button','btn main','Salvar alterações');salvar.type='submit';
+ const cancelar=criar('button','btn','Cancelar');cancelar.type='button';cancelar.onclick=()=>painel(o,true);
+ const acoes=criar('div','adm-barra');acoes.style.borderTop='0';acoes.style.paddingTop='0';acoes.append(salvar,cancelar);
+ f.append(campo('Título da obra',tit),campo('Cidade',cid),campo('Bairro',bai),campo('Metragem (m²)',met),campo('Descrição',obs));
+ if(atuais.length){f.append(criar('p','hint','Marque as fotos que deseja remover:'),grade);}
+ f.append(campo('Adicionar fotos',novas),criar('p','hint','O ponto no mapa não muda. Para mudar o endereço, exclua a obra e cadastre de novo.'),msg,acoes);
+ f.onsubmit=async e=>{e.preventDefault();if(!logged||!sb)return;
+  const m=Number(met.value);if(!(m>0)){msg.textContent='Informe a metragem em m².';return;}
+  let antes=o.antes||null,depois=o.depois||null;const fotos=[],removidas=[];
+  atuais.forEach((it,k)=>{if(marcas[k].checked){removidas.push(it.u);if(it.k==='antes')antes=null;else if(it.k==='depois')depois=null;}else if(it.k==='fotos')fotos.push(it.u);});
+  const arquivos=[...novas.files];if(fotos.length+arquivos.length>12){msg.textContent='Máximo de 12 fotos por obra.';return;}
+  salvar.disabled=true;
+  try{for(let k=0;k<arquivos.length;k++){msg.textContent='Enviando foto '+(k+1)+' de '+arquivos.length+'…';fotos.push(await enviarFoto(arquivos[k]));}
+   msg.textContent='Salvando…';
+   const {data,error}=await sb.from('obras').update({titulo:tit.value.trim(),cidade:cid.value,bairro:bai.value.trim(),metragem:m,obs:obs.value.trim()||null,antes:antes,depois:depois,fotos:fotos}).eq('id',o.id).select().single();
+   if(error||!data)throw new Error('Não foi possível salvar. Entre novamente e tente de novo.');
+   await apagarFotos(removidas);
+   const i=saved.findIndex(x=>x.id===o.id);if(i>=0)saved[i]=data;else saved.push(data);
+   renderObras(data.cidade);painel(data,true);
+  }catch(err){msg.textContent=err.message||'Não foi possível salvar.';salvar.disabled=false;}
+ };
+ p.appendChild(f);
 }
 function renderObras(c){atual=c;marcar();if(map){markers.clearLayers();map.setView(centros[c]||centros.Americana,c?13:11);}
  bairrosLista.replaceChildren();$('detalhe').replaceChildren();$('crumb').textContent=c||'Obras em Americana e região';
@@ -426,8 +486,8 @@ ir=renderObras;voltar=()=>renderObras(null);renderObras(null);
 async function carregarObras(){if(!sb)return;const {data,error}=await sb.from('obras').select('*').order('created_at',{ascending:true});if(error){$('dica').textContent='Não foi possível carregar as obras. Recarregue a página.';return;}saved=(data||[]).filter(o=>centros[o.cidade]&&Number.isFinite(o.lat)&&Number.isFinite(o.lng));renderObras(atual);}
 carregarObras();
 $('admin-open').onclick=()=>{$('admin-content').hidden=!$('admin-content').hidden;};
-$('admin-login').onsubmit=async e=>{e.preventDefault();const msg=$('login-msg');if(!sb){msg.textContent='Não foi possível carregar o login. Recarregue a página.';return;}msg.textContent='Entrando…';const {data,error}=await sb.auth.signInWithPassword({email:$('admin-user').value.trim(),password:$('admin-pass').value});if(error||!data.user){msg.textContent='E-mail ou senha incorretos.';return;}if(data.user.app_metadata?.role!=='admin'){await sb.auth.signOut();msg.textContent='Este usuário não tem permissão de administrador.';return;}logged=true;$('admin-login').hidden=true;$('admin-panel').hidden=false;$('admin-pass').value='';msg.textContent='';};
-$('admin-out').onclick=async()=>{if(sb)await sb.auth.signOut();logged=false;$('admin-panel').hidden=true;$('admin-login').hidden=false;if(chosen){chosen.remove();chosen=null;}};
+$('admin-login').onsubmit=async e=>{e.preventDefault();const msg=$('login-msg');if(!sb){msg.textContent='Não foi possível carregar o login. Recarregue a página.';return;}msg.textContent='Entrando…';const {data,error}=await sb.auth.signInWithPassword({email:$('admin-user').value.trim(),password:$('admin-pass').value});if(error||!data.user){msg.textContent='E-mail ou senha incorretos.';return;}if(data.user.app_metadata?.role!=='admin'){await sb.auth.signOut();msg.textContent='Este usuário não tem permissão de administrador.';return;}logged=true;$('admin-login').hidden=true;$('admin-panel').hidden=false;$('admin-pass').value='';msg.textContent='';painel(obraAberta,true);};
+$('admin-out').onclick=async()=>{if(sb)await sb.auth.signOut();logged=false;$('admin-panel').hidden=true;$('admin-login').hidden=false;if(chosen){chosen.remove();chosen=null;}painel(obraAberta,true);};
 async function reduzir(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Use fotos JPG, PNG ou WebP.');const bmp=await createImageBitmap(file);const k=Math.min(1,1600/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));if(!blob||blob.size>5242880)throw new Error('Foto muito grande.');return blob;}
 async function enviarFoto(file){if(!file)return '';const blob=await reduzir(file);const caminho='obras/'+crypto.randomUUID()+'.jpg';const {error}=await sb.storage.from(BUCKET).upload(caminho,blob,{contentType:'image/jpeg',upsert:false});if(error)throw new Error('Não foi possível enviar a foto. Entre novamente e tente de novo.');return sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;}
 $('obra-form').onsubmit=async e=>{e.preventDefault();if(!logged||!sb)return;const botao=e.submitter;const obra={cep:$('obra-cep').value.replace(/\D/g,'')||null,numero:$('obra-numero').value.trim()||null,rua:$('obra-rua').value||null,titulo:$('obra-title').value.trim(),cidade:$('obra-city').value,bairro:$('obra-area').value.trim(),lat:Number($('obra-lat').value),lng:Number($('obra-lng').value),obs:$('obra-desc').value.trim()||null,metragem:Number($('obra-metragem').value),fotos:[]};if(!obra.titulo||!obra.bairro)return;if(!(obra.metragem>0)){$('save-msg').textContent='Informe a metragem em m².';return;}const arquivos=[...$('obra-fotos').files];if(arquivos.length>8){$('save-msg').textContent='Envie no máximo 8 fotos por obra.';return;}if(botao)botao.disabled=true;try{for(let k=0;k<arquivos.length;k++){$('save-msg').textContent='Enviando foto '+(k+1)+' de '+arquivos.length+'…';obra.fotos.push(await enviarFoto(arquivos[k]));}$('save-msg').textContent='Salvando obra…';const {data,error}=await sb.from('obras').insert(obra).select().single();if(error)throw new Error('Não foi possível salvar a obra. Entre novamente e tente de novo.');saved.push(data);renderObras(data.cidade);painel(data);if(chosen){chosen.remove();chosen=null;}$('obra-form').reset();buscaVersao++;$('endereco-msg').textContent='Informe CEP e número para a próxima obra.';$('save-msg').textContent='Obra salva e publicada no mapa para todos os visitantes.';}catch(err){$('save-msg').textContent=err.message||'Não foi possível salvar a obra.';}finally{if(botao)botao.disabled=false;}};
@@ -690,5 +750,19 @@ section[id],header[id]{scroll-margin-top:28px}
  }));
 })();
 </script>
+<style>
+/* Administração: editar e excluir obras (só aparece logado). */
+.adm-barra{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:2px dashed var(--line)}
+.adm-barra .hint{flex:1 0 100%;margin:0}
+.btn.perigo{border-color:#b3261e;color:#b3261e}
+.btn.perigo:hover,.btn.perigo:focus-visible{background:#b3261e;color:#fff}
+#painel form.edicao{box-shadow:none;border:0;padding:0;background:none;max-width:none;margin-top:12px}
+.fotos-atuais{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.foto-edit{display:grid;gap:6px;font-weight:500;font-size:.85rem}
+.foto-edit img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;background:var(--line)}
+.foto-edit span{display:flex;gap:6px;align-items:center}
+.foto-edit input[type=checkbox]{width:20px;height:20px;min-height:0;padding:0;flex:none}
+#painel textarea{font:inherit;padding:13px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);width:100%;resize:vertical}
+</style>
 </body>
 </html>
