@@ -375,7 +375,7 @@ if(map){L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{
 function criar(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 function painel(o){
  const p=painelObra;p.replaceChildren();
- if(!o){p.appendChild(criar('p','hint','Toque em um marcador amarelo no mapa para ver a obra, a metragem e as fotos.'));return;}
+ if(!o){p.appendChild(criar('h3','','Conheça nossas obras'));p.appendChild(criar('p','hint','Selecione uma obra no mapa ou na lista para ver os detalhes e as fotos.'));return;}
  p.appendChild(criar('h3','',o.titulo));
  const meta=criar('div','meta');meta.appendChild(criar('span','',o.bairro+', '+o.cidade));
  if(o.metragem)meta.appendChild(criar('span','',Number(o.metragem).toLocaleString('pt-BR')+' m²'));
@@ -398,7 +398,7 @@ function painel(o){
 }
 function renderObras(c){atual=c;marcar();if(map){markers.clearLayers();map.setView(centros[c]||centros.Americana,c?13:11);}
  bairrosLista.replaceChildren();$('detalhe').replaceChildren();$('crumb').textContent=c||'Obras em Americana e região';
- $('dica').textContent='Toque em um marcador amarelo para ver a obra, a metragem e as fotos ao lado do mapa.';painel(null);
+ $('dica').textContent='Selecione um marcador ou uma obra na lista para explorar as fotos.';painel(null);
  saved.filter(o=>!c||o.cidade===c).forEach(o=>{
   if(map)L.marker([o.lat,o.lng],{icon:L.divIcon({className:'obra-pin',html:'📍',iconSize:[32,32],iconAnchor:[16,29]}),title:o.titulo}).addTo(markers).on('click',()=>painel(o));
   const item=document.createElement('button');item.className='chip';item.type='button';item.textContent=o.titulo+' · '+o.cidade;item.onclick=()=>{if(map)map.setView([o.lat,o.lng],17);painel(o);};bairrosLista.appendChild(item);});
@@ -592,6 +592,58 @@ body>.hero .stats>div{padding:0 24px}body>.hero .stats>div:first-child{padding-l
  toggle.addEventListener('click',()=>{const paused=ticker.classList.toggle('is-paused');toggle.textContent=paused?'▶':'Ⅱ';toggle.setAttribute('aria-pressed',String(paused));toggle.setAttribute('aria-label',paused?'Retomar animação dos serviços':'Pausar animação dos serviços');});ticker.append(toggle);
  // A faixa substitui a lista estática para não repetir a mesma informação no topo.
  hero.querySelector('.svcs')?.remove();hero.after(ticker);
+})();
+</script>
+<style>
+/* Revisão final de proporção, alinhamento e leitura. */
+main{max-width:1144px;padding:0 24px 0}main>section{margin-top:64px}
+body>.hero{padding-left:max(24px,calc((100% - 1096px)/2));padding-right:max(24px,calc((100% - 1096px)/2))}
+body>.hero .top{align-items:center;padding-top:28px;padding-bottom:0;min-height:240px}
+.hero #logo{width:clamp(110px,19vw,208px)}
+.hero h1 .n1{font-size:clamp(3rem,7vw,5.8rem)}.hero h1 .n2{font-size:clamp(1.65rem,3.8vw,3rem)}
+.hero-intro{margin:18px 0;font-size:clamp(1.35rem,2.6vw,1.9rem);max-width:30ch}
+.hero .btns{margin-top:20px;margin-bottom:30px}.hero:before{opacity:.2}
+h2{font-size:clamp(2rem,3.3vw,2.8rem)}.eyebrow{letter-spacing:.12em}
+.service-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+.service-item{grid-column:span 2;display:flex;flex-direction:column;padding:24px;min-width:0}
+.service-item:nth-last-child(-n+2){grid-column:span 3}
+.service-item h3{font:700 1.3rem/1.25 Barlow,sans-serif;margin:20px 0 12px;letter-spacing:-.025em}
+.service-item p{margin:0 0 18px;max-width:42ch}.service-item a{margin-top:auto;min-height:44px;display:flex;align-items:center;align-self:flex-start}
+.chip{min-height:44px;border:1px solid var(--line);border-radius:6px;font-weight:600}.chip[aria-pressed="true"]{background:var(--yellow);color:#231f20;border-color:var(--yellow)}
+#crumb{font-size:.9rem;color:var(--muted);min-height:28px;margin:8px 0 16px}
+#mapa-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+#obras-map{height:480px}#painel{padding:24px;min-width:0}#painel h3{font:700 1.35rem/1.25 Barlow,sans-serif}
+.galeria-foto{height:320px;background:#161819;border-radius:6px}.galeria-foto img{padding:0;width:100%;height:100%;object-fit:contain}
+.miniaturas button{width:52px;height:52px}.miniaturas button[aria-current="true"]{border-color:#c5a700}
+#bairros{margin-top:16px}#bairros .chip{text-align:left;white-space:normal}
+.step h3{font:700 1.15rem/1.3 Barlow,sans-serif}.step b{color:var(--ink);opacity:.65}.steps{gap:24px}
+#orcamento{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);column-gap:40px;align-items:start;padding:36px}
+#orcamento>.eyebrow{grid-column:1;grid-row:1}#orcamento>h2{grid-column:1;grid-row:2;margin:0 0 16px}
+#orcamento>.section-lead{grid-column:1;grid-row:3;margin:0}#orcamento>#f{grid-column:2;grid-row:1/5;min-width:0}
+#f .row{gap:16px}#f{gap:18px}input,select{border-color:var(--line)}
+.faq summary{display:flex;align-items:center;justify-content:space-between;gap:20px;list-style:none;min-height:48px;font-size:1rem;padding:4px;border-radius:4px}.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:'+';font-size:1.5rem;line-height:1;color:var(--muted);flex:none}.faq details[open] summary:after{content:'−'}
+.faq details{padding:12px 0}.faq details p{padding:0 4px 12px;margin-top:8px}.faq summary:focus-visible{outline-width:2px;outline-offset:2px}
+body>#foot.site-footer{margin:64px 0 0;padding:44px max(24px,calc((100% - 1096px)/2)) 24px}
+.footer-top h2{max-width:24ch}.footer-bottom{flex-wrap:wrap}.footer-admin{font:inherit;min-height:44px;background:none;color:#bdb9b1;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:4px}
+main>.admin-area{border:0;padding:0;margin:0}main>.admin-area>#admin-open{display:none}
+@media(max-width:860px){#mapa-grid{grid-template-columns:1fr}.galeria-foto{height:min(55vh,400px)}#obras-map{height:360px}#orcamento{display:block;padding:28px}#orcamento>.section-lead{margin-bottom:24px}.service-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.service-item,.service-item:nth-last-child(-n+2){grid-column:auto}.service-item:last-child{grid-column:1/-1}}
+@media(max-width:560px){main{padding:0 18px}main>section{margin-top:44px}body>.hero{padding:14px 18px 0}.hero .top{min-height:0;padding-top:24px;gap:12px}.hero h1 .n1{font-size:clamp(2.5rem,10vw,3.4rem)}.hero h1 .n2{font-size:clamp(1.2rem,5vw,1.7rem)}.hero #logo{width:96px}.hero .sub{font-size:.9rem}.hero .btns{width:100%;margin-bottom:24px}.hero .btn{font-size:.92rem}.service-grid{grid-template-columns:1fr}.service-item:last-child{grid-column:auto}.service-item{padding:22px}.service-item h3{margin-top:14px}.steps{grid-template-columns:1fr;gap:16px}.steps .step:last-child{grid-column:auto}.step b{font-size:1.9rem;margin-bottom:8px}#orcamento{padding:24px 18px}#painel{padding:18px}.footer-grid{gap:24px}.footer-top h2{max-width:22ch}.site-nav a{font-size:.78rem}.footer-top .btn{width:100%}}
+</style>
+<script>
+(()=>{
+ const service='Assentamento de porcelanato';
+ const option=document.createElement('option');option.value=service;option.textContent=service;document.getElementById('ft').options.add(option,1);
+ const card=document.createElement('article');card.className='service-item';
+ card.innerHTML='<span>05 / PORCELANATO</span><h3>Assentamento de porcelanato</h3><p>Conte o formato das peças e mostre o ambiente para avaliar o assentamento e o acabamento.</p><a href="#orcamento">Pedir orçamento ↗</a>';
+ card.querySelector('a').addEventListener('click',()=>{document.getElementById('ft').value=service;});document.querySelector('.service-grid').append(card);
+ document.querySelectorAll('.ticker-group').forEach(group=>{const item=document.createElement('li');item.textContent=service;group.insertBefore(item,group.lastElementChild);});
+ const footer=document.getElementById('foot');document.body.append(footer);
+ const admin=document.createElement('button');admin.type='button';admin.className='footer-admin';admin.textContent='Área administrativa';admin.setAttribute('aria-controls','admin-content');admin.setAttribute('aria-expanded','false');
+ admin.addEventListener('click',()=>{document.getElementById('admin-open').click();const content=document.getElementById('admin-content');admin.setAttribute('aria-expanded',String(!content.hidden));if(!content.hidden){content.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});document.getElementById('admin-user').focus({preventScroll:true});}});
+ footer.querySelector('.footer-bottom').append(admin);
+ document.getElementById('fn').placeholder='Como podemos chamar você?';
+ if(typeof map!=='undefined'&&map)requestAnimationFrame(()=>map.invalidateSize({pan:false}));
 })();
 </script>
 </body>
