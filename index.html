@@ -558,5 +558,41 @@ input,select{padding:13px;border-width:1px;border-radius:5px}label{gap:8px}.btn{
  document.querySelector('main').append(footer);
 })();
 </script>
+<style>
+/* Fundo contínuo de ponta a ponta; conteúdo alinhado ao corpo da página. */
+body>.hero{margin:0;width:100%;padding:28px max(18px,calc((100% - 1096px)/2)) 0;box-sizing:border-box}
+body>.hero .stats{margin:0;padding:22px 0;background:transparent;position:relative;border-top:0;isolation:isolate}
+body>.hero .stats:before{content:"";position:absolute;inset:0 -100vw;background:var(--yellow);z-index:-1}
+body>.hero .stats>div{padding:0 24px}body>.hero .stats>div:first-child{padding-left:0}
+.service-ticker{background:#20221f;color:#f3f0e7;border-top:1px solid #ffffff25;border-bottom:1px solid #ffffff25;overflow:hidden;padding:22px 0;margin:0;position:relative}
+.ticker-window{overflow:hidden;margin-right:66px;mask-image:linear-gradient(90deg,transparent,#000 30px,#000 calc(100% - 30px),transparent)}
+.ticker-track{display:flex;width:max-content;animation:services-pass 38s linear infinite}
+.ticker-group{display:flex;flex:none;align-items:center;list-style:none;margin:0;padding:0;min-width:100vw;justify-content:space-around}
+.ticker-group li{display:flex;align-items:center;gap:22px;padding:0 32px 0 0;font:600 clamp(1rem,2vw,1.25rem)/1.4 Barlow,sans-serif;white-space:nowrap}
+.ticker-group li:before{content:'↗';display:grid;place-items:center;width:34px;height:34px;color:#f2d216;background:#f2d2160b;font-size:1.4rem}
+.ticker-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:1px solid #ffffff40;border-radius:50%;background:#20221f;color:#f2d216;font-size:1rem;cursor:pointer}
+.service-ticker.is-paused .ticker-track{animation-play-state:paused}
+@media(hover:hover){.ticker-window:hover .ticker-track{animation-play-state:paused}}
+@keyframes services-pass{to{transform:translateX(-50%)}}
+@media(max-width:560px){body>.hero{padding:18px 18px 0}body>.hero .stats{padding:18px 0}body>.hero .stats>div{padding:0 10px}.service-ticker{padding:18px 0}.ticker-group li{gap:16px;padding-right:24px}}
+@media(prefers-reduced-motion:reduce){.ticker-window{margin:0;mask-image:none}.ticker-track{animation:none;width:100%}.ticker-group{min-width:0;flex-wrap:wrap;justify-content:center;gap:12px;padding:0 18px}.ticker-group li{white-space:normal;font-size:.9rem;padding:0}.ticker-group[aria-hidden="true"],.ticker-toggle{display:none}.ticker-group li:before{width:24px;height:24px}}
+</style>
+<script>
+(()=>{
+ const hero=document.querySelector('.hero');
+ document.body.insertBefore(hero,document.querySelector('main'));
+ const ticker=document.createElement('section');ticker.className='service-ticker';ticker.setAttribute('aria-label','Serviços disponíveis');
+ const viewport=document.createElement('div');viewport.className='ticker-window';
+ const track=document.createElement('div');track.className='ticker-track';
+ const group=document.createElement('ul');group.className='ticker-group';
+ ['Pintura','Manutenção residencial','Reformas','Assentamento de piso','Outros serviços'].forEach(service=>{const li=document.createElement('li');li.textContent=service;group.append(li);});
+ const repeat=group.cloneNode(true);repeat.setAttribute('aria-hidden','true');
+ track.append(group,repeat);viewport.append(track);ticker.append(viewport);
+ const toggle=document.createElement('button');toggle.type='button';toggle.className='ticker-toggle';toggle.textContent='Ⅱ';toggle.setAttribute('aria-label','Pausar animação dos serviços');toggle.setAttribute('aria-pressed','false');
+ toggle.addEventListener('click',()=>{const paused=ticker.classList.toggle('is-paused');toggle.textContent=paused?'▶':'Ⅱ';toggle.setAttribute('aria-pressed',String(paused));toggle.setAttribute('aria-label',paused?'Retomar animação dos serviços':'Pausar animação dos serviços');});ticker.append(toggle);
+ // A faixa substitui a lista estática para não repetir a mesma informação no topo.
+ hero.querySelector('.svcs')?.remove();hero.after(ticker);
+})();
+</script>
 </body>
 </html>
