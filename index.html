@@ -256,7 +256,6 @@ function mostrarMapa(c){
 ir=mostrarMapa;voltar=()=>mostrarMapa(null);
 mostrarMapa(null);
 </script>
-</body>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>#obras-map{height:520px;color:#23272b}#obras-map img{max-width:none}#obras-map svg{width:auto;height:auto}.admin-area{margin-top:24px}.admin-area [hidden]{display:none!important}.admin-note{padding:12px;background:#f2d21622;border-radius:8px}.obra-pin{background:#edca20;border:3px solid #23272b;border-radius:50%;color:#23272b;text-align:center;font:bold 16px/28px sans-serif;box-shadow:0 2px 5px #0005}.leaflet-popup-content{font:15px/1.5 Barlow,sans-serif}
@@ -415,4 +414,43 @@ async function enviarFoto(file){if(!file)return '';const blob=await reduzir(file
 $('obra-form').onsubmit=async e=>{e.preventDefault();if(!logged||!sb)return;const botao=e.submitter;const obra={cep:$('obra-cep').value.replace(/\D/g,'')||null,numero:$('obra-numero').value.trim()||null,rua:$('obra-rua').value||null,titulo:$('obra-title').value.trim(),cidade:$('obra-city').value,bairro:$('obra-area').value.trim(),lat:Number($('obra-lat').value),lng:Number($('obra-lng').value),obs:$('obra-desc').value.trim()||null,metragem:Number($('obra-metragem').value),fotos:[]};if(!obra.titulo||!obra.bairro)return;if(!(obra.metragem>0)){$('save-msg').textContent='Informe a metragem em m².';return;}const arquivos=[...$('obra-fotos').files];if(arquivos.length>8){$('save-msg').textContent='Envie no máximo 8 fotos por obra.';return;}if(botao)botao.disabled=true;try{for(let k=0;k<arquivos.length;k++){$('save-msg').textContent='Enviando foto '+(k+1)+' de '+arquivos.length+'…';obra.fotos.push(await enviarFoto(arquivos[k]));}$('save-msg').textContent='Salvando obra…';const {data,error}=await sb.from('obras').insert(obra).select().single();if(error)throw new Error('Não foi possível salvar a obra. Entre novamente e tente de novo.');saved.push(data);renderObras(data.cidade);painel(data);if(chosen){chosen.remove();chosen=null;}$('obra-form').reset();buscaVersao++;$('endereco-msg').textContent='Informe CEP e número para a próxima obra.';$('save-msg').textContent='Obra salva e publicada no mapa para todos os visitantes.';}catch(err){$('save-msg').textContent=err.message||'Não foi possível salvar a obra.';}finally{if(botao)botao.disabled=false;}};
 $('export-obras').onclick=()=>{if(!logged)return;const url=URL.createObjectURL(new Blob([JSON.stringify(saved,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='obras-paulinho.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 </script>
+<style>
+/* Refinamento editorial: preserva a identidade e os componentes existentes. */
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+main{max-width:1180px;padding-bottom:48px}
+.hero{padding-top:32px}.hero .top{padding-top:28px;padding-bottom:10px}
+.site-nav{display:flex;align-items:center;justify-content:space-between;gap:20px;padding-bottom:20px;border-bottom:1px solid #ffffff30;color:#eee8dc;font-size:.85rem}
+.site-nav span{letter-spacing:.12em;text-transform:uppercase;font-weight:700}.site-nav div{display:flex;gap:24px}.site-nav a{color:inherit;text-decoration:none}.site-nav a:hover{color:var(--yellow)}
+.hero-intro{max-width:660px;font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.2;font-weight:600;margin:24px 0 12px;letter-spacing:-.025em}
+section{margin-top:64px}.eyebrow{font-size:.76rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.section-lead{color:var(--muted);max-width:58ch;margin:0 0 24px;font-size:1.08rem}
+.service-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.service-item{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--yellow);padding:26px 22px;border-radius:4px}.service-item span{font-size:.8rem;color:var(--muted);font-weight:700}.service-item h3{font-size:1.7rem;margin:24px 0 12px}.service-item p{color:var(--muted);margin:0}.service-item a{display:inline-block;margin-top:22px;color:var(--ink);font-weight:700;text-underline-offset:5px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}.step{border-top:1px solid var(--line);padding-top:20px}.step b{display:block;font:800 2.4rem 'Big Shoulders Display',sans-serif;color:var(--muted);margin-bottom:12px}.step h3{font-size:1.5rem}.step p{color:var(--muted)}
+#orcamento{background:var(--surface);padding:32px;border:1px solid var(--line);border-radius:6px}#orcamento form{max-width:none;box-shadow:none;border:0;padding:0;background:none}#orcamento .section-lead{max-width:65ch}
+.faq details{border-top:1px solid var(--line);padding:20px 0}.faq details:last-child{border-bottom:1px solid var(--line)}.faq summary{font-weight:600;font-size:1.1rem;cursor:pointer;min-height:30px}.faq details p{color:var(--muted);max-width:70ch;margin-bottom:0}
+a:focus-visible,summary:focus-visible,button:focus-visible{outline:3px solid #b28d00;outline-offset:5px}.admin-area{border-top:1px solid var(--line);padding-top:20px}.admin-area>#admin-open{font-size:.85rem;min-height:44px;opacity:.75}
+@media(min-width:861px){.hero{padding:32px 42px 0}.hero .stats{margin:0 -42px}.hero .stats>div{padding:22px 42px}.hero .top{gap:40px}.hero .btns{margin-top:24px;margin-bottom:36px}}
+@media(max-width:700px){.service-grid,.steps{grid-template-columns:1fr 1fr}.steps .step:last-child{grid-column:1/-1}.site-nav span{display:none}.site-nav div{width:100%;justify-content:space-between;gap:12px}.hero-intro{font-size:1.5rem}section{margin-top:44px}#orcamento{padding:24px 18px}.hero .stats span{font-size:.8rem}}
+@media(max-width:400px){.service-grid,.steps{grid-template-columns:1fr}.hero .top{gap:8px}#logo{width:90px}.service-item h3{margin-top:16px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important}}
+</style>
+<script>
+// Camada de apresentação independente do mapa, galeria e administração.
+(()=>{
+ const hero=document.querySelector('.hero'),form=document.getElementById('f');
+ const obras=document.getElementById('mapa-grid').closest('section');obras.id='obras';
+ const orcamento=form.closest('section');orcamento.id='orcamento';
+ hero.insertAdjacentHTML('afterbegin','<nav class="site-nav" aria-label="Navegação principal"><span>Americana e região</span><div><a href="#servicos">Serviços</a><a href="#obras">Obras realizadas</a><a href="#orcamento">Orçamento ↗</a></div></nav>');
+ hero.querySelector('.top').insertAdjacentHTML('afterend','<p class="hero-intro">Sua casa merece cuidado.<br>Da manutenção à reforma.</p>');
+ hero.insertAdjacentHTML('afterend',`<section id="servicos"><p class="eyebrow">O que podemos fazer por você</p><h2>Um novo cuidado para cada ambiente.</h2><p class="section-lead">Conheça os serviços e conte o que precisa mudar na sua casa.</p><div class="service-grid"><article class="service-item"><span>01 / RENOVAR</span><h3>Pintura</h3><p>Uma nova aparência para os ambientes que fazem parte do seu dia.</p><a href="#orcamento" data-service="Pintura">Pedir orçamento ↗</a></article><article class="service-item"><span>02 / CUIDAR</span><h3>Manutenção residencial</h3><p>Conte quais reparos sua casa precisa para avaliarmos o serviço.</p><a href="#orcamento" data-service="Manutenção residencial">Pedir orçamento ↗</a></article><article class="service-item"><span>03 / TRANSFORMAR</span><h3>Reformas</h3><p>Melhorias para adaptar o espaço às suas necessidades.</p><a href="#orcamento" data-service="Reformas">Pedir orçamento ↗</a></article><article class="service-item"><span>04 / FINALIZAR</span><h3>Assentamento de piso</h3><p>Um acabamento que muda a forma de viver o ambiente.</p><a href="#orcamento" data-service="Assentamento de piso">Pedir orçamento ↗</a></article></div></section>`);
+ obras.querySelector('h2').insertAdjacentHTML('beforebegin','<p class="eyebrow">Trabalho que você pode conhecer</p>');
+ obras.querySelector('h2').insertAdjacentHTML('afterend','<p class="section-lead">Explore as cidades no mapa e abra os registros para conhecer as obras e suas fotos.</p>');
+ orcamento.insertAdjacentHTML('beforebegin',`<section><p class="eyebrow">Vamos conversar</p><h2>Seu orçamento começa aqui.</h2><div class="steps"><article class="step"><b>01</b><h3>Conte o que precisa</h3><p>Escolha o serviço e informe em qual cidade será realizado.</p></article><article class="step"><b>02</b><h3>Mostre o ambiente</h3><p>Na conversa pelo WhatsApp, envie fotos e explique os detalhes.</p></article><article class="step"><b>03</b><h3>Combine o próximo passo</h3><p>Converse sobre avaliação, materiais e disponibilidade para o serviço.</p></article></div></section>`);
+ orcamento.querySelector('h2').insertAdjacentHTML('beforebegin','<p class="eyebrow">Fale direto com Paulinho</p>');
+ orcamento.querySelector('h2').insertAdjacentHTML('afterend','<p class="section-lead">Preencha os dados abaixo. O botão abre uma mensagem pronta no WhatsApp para você revisar e enviar.</p>');
+ orcamento.insertAdjacentHTML('afterend',`<section class="faq"><p class="eyebrow">Antes de chamar</p><h2>Dúvidas frequentes</h2><details><summary>Quais cidades são atendidas?</summary><p>Americana, Sumaré, Nova Odessa, Santa Bárbara d’Oeste e Limeira. Informe seu bairro na conversa para consultar disponibilidade.</p></details><details><summary>Preciso saber a metragem para pedir orçamento?</summary><p>Não. A metragem é opcional. Se não souber, deixe em branco e envie fotos do ambiente pelo WhatsApp.</p></details><details><summary>Posso ver trabalhos já realizados?</summary><p>Sim. No mapa desta página, selecione uma cidade e abra uma obra para consultar os registros e as fotos disponíveis.</p></details><details><summary>Como combinar materiais e prazo?</summary><p>Explique o serviço pelo WhatsApp para conversar sobre materiais, avaliação do local e disponibilidade antes de combinar a execução.</p></details></section>`);
+ document.querySelectorAll('[data-service]').forEach(link=>link.addEventListener('click',()=>{document.getElementById('ft').value=link.dataset.service;}));
+})();
+</script>
+</body>
 </html>
