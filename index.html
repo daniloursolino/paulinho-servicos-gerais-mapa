@@ -13,7 +13,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif}
-main{max-width:760px;margin:0 auto;padding:20px 18px 48px}
+main{max-width:1080px;margin:0 auto;padding:20px 18px 48px}
 h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;line-height:1.05;margin:0}
 h1{font-size:clamp(2.4rem,9vw,3.6rem);font-weight:700}
 h2{font-size:1.7rem;margin-bottom:12px}
@@ -135,7 +135,7 @@ const cidades=Object.keys(CID);
 $("nome").textContent=CONFIG.nome;$("slogan").textContent=CONFIG.slogan;
 if(CONFIG.logo){$("logo").src=CONFIG.logo;$("logo").style.display="block"}
 $("wa").href=wa("Olá! Vi o site do Paulinho Serviços Gerais e gostaria de um orçamento.");
-$("ig").href="https://instagram.com/"+CONFIG.instagram;
+$("ig").href="https://www.instagram.com/"+CONFIG.instagram+"/";
 $("tel").href="tel:+"+CONFIG.whatsapp;$("tel").textContent="Ligar "+CONFIG.telefone;
 $("foot").textContent="© "+CONFIG.nome+" · "+CONFIG.telefone+" · Americana, Sumaré, Nova Odessa, Santa Bárbara d’Oeste e Limeira";
 $("s1").textContent=OBRAS.length;
@@ -261,16 +261,33 @@ mostrarMapa(null);
 </body>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>#obras-map{height:520px;color:#23272b}#obras-map img{max-width:none}#obras-map svg{width:auto;height:auto}.admin-area{margin-top:24px}.admin-area [hidden]{display:none!important}.admin-note{padding:12px;background:#f2d21622;border-radius:8px}.obra-pin{background:#edca20;border:3px solid #23272b;border-radius:50%;color:#23272b;text-align:center;font:bold 16px/28px sans-serif;box-shadow:0 2px 5px #0005}.leaflet-popup-content{font:15px/1.5 Barlow,sans-serif}</style>
+<style>#obras-map{height:520px;color:#23272b}#obras-map img{max-width:none}#obras-map svg{width:auto;height:auto}.admin-area{margin-top:24px}.admin-area [hidden]{display:none!important}.admin-note{padding:12px;background:#f2d21622;border-radius:8px}.obra-pin{background:#edca20;border:3px solid #23272b;border-radius:50%;color:#23272b;text-align:center;font:bold 16px/28px sans-serif;box-shadow:0 2px 5px #0005}.leaflet-popup-content{font:15px/1.5 Barlow,sans-serif}
+#f,#admin-content form{max-width:760px}
+#mapa-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:860px){#mapa-grid{grid-template-columns:1fr}}
+#painel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 12px 34px #332f2710;min-height:200px}
+#painel h3{font-size:1.5rem}
+.galeria{margin-top:12px;display:grid;gap:8px}
+.galeria-foto{position:relative;background:#1d1f21;border-radius:10px;overflow:hidden;height:min(62vh,420px);display:flex;align-items:center;justify-content:center}
+.galeria-foto img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.galeria-foto .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:#000a;color:#fff;font-size:1.7rem;line-height:1;cursor:pointer}
+.nav.ant{left:8px}.nav.prox{right:8px}
+.galeria-info{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted)}
+.miniaturas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.miniaturas button{flex:none;width:64px;height:64px;padding:0;border:3px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;background:var(--line)}
+.miniaturas button[aria-current="true"]{border-color:var(--pin)}
+.miniaturas img{width:100%;height:100%;object-fit:cover;display:block}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const SUPABASE_URL="https://qpzwovdjalbnismhxatb.supabase.co",SUPABASE_KEY="sb_publishable_m--qV0Qff8W6ILuv-gDV8w_-xjCvl6U",BUCKET="obras-fotos";
 const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 mapaGoogle.remove();mapaLink.remove();bairrosLista.replaceChildren();
-const host=document.createElement('div');host.id='obras-map';svg.parentElement.appendChild(host);
+const caixaMapa=svg.parentElement;const host=document.createElement('div');host.id='obras-map';caixaMapa.appendChild(host);
+const grade=document.createElement('div');grade.id='mapa-grid';caixaMapa.parentElement.insertBefore(grade,caixaMapa);grade.appendChild(caixaMapa);
+const painelObra=document.createElement('aside');painelObra.id='painel';painelObra.setAttribute('aria-live','polite');grade.appendChild(painelObra);
 const centros={'Americana':[-22.739,-47.331],'Nova Odessa':[-22.779,-47.295],'Sumaré':[-22.821,-47.267],'Santa Bárbara d’Oeste':[-22.754,-47.414],'Limeira':[-22.565,-47.401]};
 const admin=document.createElement('section');admin.className='admin-area';
-admin.innerHTML=`<button class="btn" id="admin-open">Área administrativa</button><div id="admin-content" hidden><h2>Administração local</h2><p class="admin-note">Acesso restrito. Entre com o e-mail e a senha do administrador. As obras cadastradas e as fotos ficam salvas no Supabase e aparecem para todos os visitantes do site.</p><form id="admin-login"><label>E-mail<input id="admin-user" type="email" autocomplete="username" required></label><label>Senha<input id="admin-pass" type="password" autocomplete="current-password" required></label><button class="btn" type="submit">Entrar</button><p id="login-msg" role="status"></p></form><div id="admin-panel" hidden><button class="btn" id="admin-out">Sair</button><h3>Cadastrar obra</h3><p>Clique no mapa acima para escolher a posição. Depois preencha os dados.</p><form id="obra-form"><label>Título<input id="obra-title" maxlength="160" required></label><div class="row"><label>Cidade<select id="obra-city"></select></label><label>Bairro<input id="obra-area" maxlength="100" required></label></div><div class="row"><label>Latitude<input id="obra-lat" type="number" step="any" min="-90" max="90" required></label><label>Longitude<input id="obra-lng" type="number" step="any" min="-180" max="180" required></label></div><label>Descrição<input id="obra-desc" maxlength="500"></label><div class="row"><label>Foto do antes<input id="obra-antes" type="file" accept="image/jpeg,image/png,image/webp"></label><label>Foto do depois<input id="obra-depois" type="file" accept="image/jpeg,image/png,image/webp"></label></div><button class="btn main" type="submit">Salvar obra no mapa</button><p id="save-msg" role="status"></p></form><button class="btn" id="export-obras">Exportar cadastros</button></div></div>`;
+admin.innerHTML=`<button class="btn" id="admin-open">Área administrativa</button><div id="admin-content" hidden><h2>Administração local</h2><p class="admin-note">Acesso restrito. Entre com o e-mail e a senha do administrador. As obras cadastradas e as fotos ficam salvas no Supabase e aparecem para todos os visitantes do site.</p><form id="admin-login"><label>E-mail<input id="admin-user" type="email" autocomplete="username" required></label><label>Senha<input id="admin-pass" type="password" autocomplete="current-password" required></label><button class="btn" type="submit">Entrar</button><p id="login-msg" role="status"></p></form><div id="admin-panel" hidden><button class="btn" id="admin-out">Sair</button><h3>Cadastrar obra</h3><p>Clique no mapa acima para escolher a posição. Depois preencha os dados.</p><form id="obra-form"><label>Título<input id="obra-title" maxlength="160" required></label><div class="row"><label>Cidade<select id="obra-city"></select></label><label>Bairro<input id="obra-area" maxlength="100" required></label></div><div class="row"><label>Latitude<input id="obra-lat" type="number" step="any" min="-90" max="90" required></label><label>Longitude<input id="obra-lng" type="number" step="any" min="-180" max="180" required></label></div><label>Descrição<input id="obra-desc" maxlength="500"></label><label>Metragem (m²)<input id="obra-metragem" type="number" step="0.01" min="0.01" max="100000" inputmode="decimal" required></label><label>Fotos da obra (até 8)<input id="obra-fotos" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><p class="hint">Dica: envie primeiro as fotos do antes e depois as do depois.</p><button class="btn main" type="submit">Salvar obra no mapa</button><p id="save-msg" role="status"></p></form><button class="btn" id="export-obras">Exportar cadastros</button></div></div>`;
 document.querySelector('main').appendChild(admin);
 $('obra-city').innerHTML=cidades.map(c=>'<option>'+c+'</option>').join('');
 const enderecoCampos=document.createElement('div');
@@ -317,9 +334,39 @@ let logged=false,saved=[];const storageKey='paulinho-obras-v1';
 const map=typeof L==='undefined'?null:L.map(host).setView(centros.Americana,11);
 let markers,chosen;
 if(map){L.tileLayer('https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=cb1_57t7_1_d8b0592fb9c40ab4cbdd1e16',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>'}).addTo(map);markers=L.layerGroup().addTo(map);map.on('click',e=>{if(!logged)return;$('obra-lat').value=e.latlng.lat.toFixed(6);$('obra-lng').value=e.latlng.lng.toFixed(6);if(chosen)chosen.remove();chosen=L.marker(e.latlng).addTo(map);$('save-msg').textContent='Posição selecionada. Preencha os dados e salve.';});}else{host.textContent='Não foi possível carregar o mapa. Verifique sua conexão e recarregue a página.';}
-function renderObras(c){atual=c;marcar();if(map){markers.clearLayers();map.setView(centros[c]||centros.Americana,c?13:11);}bairrosLista.replaceChildren();$('detalhe').replaceChildren();$('crumb').textContent=c||'Obras em Americana e região';$('dica').textContent='Marcadores amarelos: obras cadastradas. Os exemplos do arquivo original não possuem endereço confirmado e aparecem somente na lista.';
- saved.filter(o=>!c||o.cidade===c).forEach(o=>{const card=document.createElement('div');const title=document.createElement('strong');title.textContent=o.titulo;card.appendChild(title);const desc=document.createElement('p');desc.textContent=o.bairro+' · '+o.cidade+(o.obs?' — '+o.obs:'');card.appendChild(desc);[['Antes',o.antes],['Depois',o.depois]].forEach(([t,u])=>{if(!u||u.indexOf(SUPABASE_URL+'/storage/')!==0)return;const f=document.createElement('figure');f.style.margin='8px 0';const im=document.createElement('img');im.src=u;im.alt='Foto do '+t.toLowerCase();im.loading='lazy';im.style.cssText='width:100%;max-width:260px;border-radius:6px;display:block';const cp=document.createElement('figcaption');cp.textContent=t;f.append(im,cp);card.appendChild(f);});if(map)L.marker([o.lat,o.lng],{icon:L.divIcon({className:'obra-pin',html:'P',iconSize:[34,34],iconAnchor:[17,17]})}).addTo(markers).bindPopup(card);const item=document.createElement('button');item.className='chip';item.textContent=o.titulo+' · '+o.cidade;item.onclick=()=>{if(map)map.setView([o.lat,o.lng],17);$('detalhe').replaceChildren(card.cloneNode(true));};bairrosLista.appendChild(item);});
- OBRAS.filter(o=>!c||o.cidade===c).forEach(o=>{const b=document.createElement('button');b.className='chip';b.textContent=o.titulo+' · '+o.cidade;b.onclick=()=>bairro(o.cidade,o.bairro);bairrosLista.appendChild(b);});$('s1').textContent=saved.length;$('s1').nextElementSibling.textContent='obras cadastradas';$('s2').parentElement.hidden=true;$('s3').textContent=cidades.length;}
+function criar(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function painel(o){
+ const p=painelObra;p.replaceChildren();
+ if(!o){p.appendChild(criar('p','hint','Toque em um marcador amarelo no mapa para ver a obra, a metragem e as fotos.'));return;}
+ p.appendChild(criar('h3','',o.titulo));
+ const meta=criar('div','meta');meta.appendChild(criar('span','',o.bairro+', '+o.cidade));
+ if(o.metragem)meta.appendChild(criar('span','',Number(o.metragem).toLocaleString('pt-BR')+' m²'));
+ p.appendChild(meta);if(o.obs)p.appendChild(criar('p','',o.obs));
+ const ok=u=>typeof u==='string'&&u.indexOf(SUPABASE_URL+'/storage/')===0;
+ const itens=[];if(ok(o.antes))itens.push({u:o.antes,t:'Antes'});if(ok(o.depois))itens.push({u:o.depois,t:'Depois'});
+ (o.fotos||[]).forEach((u,k)=>{if(ok(u))itens.push({u:u,t:'Foto '+(k+1)});});
+ if(!itens.length){p.appendChild(criar('p','hint','Esta obra ainda não tem fotos.'));}
+ else{
+  let i=0;const g=criar('div','galeria'),box=criar('div','galeria-foto'),img=document.createElement('img'),info=criar('div','galeria-info'),legenda=criar('span'),cont=criar('span'),mini=criar('div','miniaturas');
+  box.appendChild(img);
+  const thumbs=itens.map((it,k)=>{const b=criar('button');b.type='button';b.setAttribute('aria-label','Ver '+it.t);const t=document.createElement('img');t.src=it.u;t.alt='';t.loading='lazy';b.appendChild(t);b.onclick=()=>mostrar(k);mini.appendChild(b);return b;});
+  function mostrar(k){i=(k+itens.length)%itens.length;img.src=itens[i].u;img.alt=itens[i].t+' — '+o.titulo;legenda.textContent=itens[i].t;cont.textContent=(i+1)+' / '+itens.length;thumbs.forEach((b,j)=>b.setAttribute('aria-current',j===i));}
+  if(itens.length>1){[['ant','‹','Foto anterior',-1],['prox','›','Próxima foto',1]].forEach(([c,s,a,d])=>{const b=criar('button','nav '+c,s);b.type='button';b.setAttribute('aria-label',a);b.onclick=()=>mostrar(i+d);box.appendChild(b);});info.append(legenda,cont);g.append(box,info,mini);}
+  else{info.append(legenda);g.append(box,info);}
+  mostrar(0);p.appendChild(g);
+ }
+ const a=criar('a','btn','Quero um serviço assim');a.target='_blank';a.rel='noopener';a.href=wa('Olá! Vi a obra “'+o.titulo+'” no site e quero um orçamento parecido.');a.style.marginTop='14px';p.appendChild(a);
+ if(window.innerWidth<=860)p.scrollIntoView({behavior:RM?'auto':'smooth',block:'nearest'});
+}
+function renderObras(c){atual=c;marcar();if(map){markers.clearLayers();map.setView(centros[c]||centros.Americana,c?13:11);}
+ bairrosLista.replaceChildren();$('detalhe').replaceChildren();$('crumb').textContent=c||'Obras em Americana e região';
+ $('dica').textContent='Toque em um marcador amarelo para ver a obra, a metragem e as fotos ao lado do mapa.';painel(null);
+ saved.filter(o=>!c||o.cidade===c).forEach(o=>{
+  if(map)L.marker([o.lat,o.lng],{icon:L.divIcon({className:'obra-pin',html:'P',iconSize:[34,34],iconAnchor:[17,17]}),title:o.titulo}).addTo(markers).on('click',()=>painel(o));
+  const item=document.createElement('button');item.className='chip';item.type='button';item.textContent=o.titulo+' · '+o.cidade;item.onclick=()=>{if(map)map.setView([o.lat,o.lng],17);painel(o);};bairrosLista.appendChild(item);});
+ $('s1').textContent=saved.length;$('s1').nextElementSibling.textContent='obras cadastradas';
+ $('s2').textContent=saved.reduce((a,o)=>a+(Number(o.metragem)||0),0).toLocaleString('pt-BR');$('s2').parentElement.hidden=false;
+ $('s3').textContent=cidades.length;}
 ir=renderObras;voltar=()=>renderObras(null);renderObras(null);
 async function carregarObras(){if(!sb)return;const {data,error}=await sb.from('obras').select('*').order('created_at',{ascending:true});if(error){$('dica').textContent='Não foi possível carregar as obras. Recarregue a página.';return;}saved=(data||[]).filter(o=>centros[o.cidade]&&Number.isFinite(o.lat)&&Number.isFinite(o.lng));renderObras(atual);}
 carregarObras();
@@ -328,7 +375,7 @@ $('admin-login').onsubmit=async e=>{e.preventDefault();const msg=$('login-msg');
 $('admin-out').onclick=async()=>{if(sb)await sb.auth.signOut();logged=false;$('admin-panel').hidden=true;$('admin-login').hidden=false;if(chosen){chosen.remove();chosen=null;}};
 async function reduzir(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Use fotos JPG, PNG ou WebP.');const bmp=await createImageBitmap(file);const k=Math.min(1,1600/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));if(!blob||blob.size>5242880)throw new Error('Foto muito grande.');return blob;}
 async function enviarFoto(file){if(!file)return '';const blob=await reduzir(file);const caminho='obras/'+crypto.randomUUID()+'.jpg';const {error}=await sb.storage.from(BUCKET).upload(caminho,blob,{contentType:'image/jpeg',upsert:false});if(error)throw new Error('Não foi possível enviar a foto. Entre novamente e tente de novo.');return sb.storage.from(BUCKET).getPublicUrl(caminho).data.publicUrl;}
-$('obra-form').onsubmit=async e=>{e.preventDefault();if(!logged||!sb)return;const botao=e.submitter;const obra={cep:$('obra-cep').value.replace(/\D/g,'')||null,numero:$('obra-numero').value.trim()||null,rua:$('obra-rua').value||null,titulo:$('obra-title').value.trim(),cidade:$('obra-city').value,bairro:$('obra-area').value.trim(),lat:Number($('obra-lat').value),lng:Number($('obra-lng').value),obs:$('obra-desc').value.trim()||null,antes:null,depois:null};if(!obra.titulo||!obra.bairro)return;if(botao)botao.disabled=true;try{$('save-msg').textContent='Enviando fotos…';obra.antes=(await enviarFoto($('obra-antes').files[0]))||null;obra.depois=(await enviarFoto($('obra-depois').files[0]))||null;$('save-msg').textContent='Salvando obra…';const {data,error}=await sb.from('obras').insert(obra).select().single();if(error)throw new Error('Não foi possível salvar a obra. Entre novamente e tente de novo.');saved.push(data);renderObras(data.cidade);if(chosen){chosen.remove();chosen=null;}$('obra-form').reset();buscaVersao++;$('endereco-msg').textContent='Informe CEP e número para a próxima obra.';$('save-msg').textContent='Obra salva e publicada no mapa para todos os visitantes.';}catch(err){$('save-msg').textContent=err.message||'Não foi possível salvar a obra.';}finally{if(botao)botao.disabled=false;}};
+$('obra-form').onsubmit=async e=>{e.preventDefault();if(!logged||!sb)return;const botao=e.submitter;const obra={cep:$('obra-cep').value.replace(/\D/g,'')||null,numero:$('obra-numero').value.trim()||null,rua:$('obra-rua').value||null,titulo:$('obra-title').value.trim(),cidade:$('obra-city').value,bairro:$('obra-area').value.trim(),lat:Number($('obra-lat').value),lng:Number($('obra-lng').value),obs:$('obra-desc').value.trim()||null,metragem:Number($('obra-metragem').value),fotos:[]};if(!obra.titulo||!obra.bairro)return;if(!(obra.metragem>0)){$('save-msg').textContent='Informe a metragem em m².';return;}const arquivos=[...$('obra-fotos').files];if(arquivos.length>8){$('save-msg').textContent='Envie no máximo 8 fotos por obra.';return;}if(botao)botao.disabled=true;try{for(let k=0;k<arquivos.length;k++){$('save-msg').textContent='Enviando foto '+(k+1)+' de '+arquivos.length+'…';obra.fotos.push(await enviarFoto(arquivos[k]));}$('save-msg').textContent='Salvando obra…';const {data,error}=await sb.from('obras').insert(obra).select().single();if(error)throw new Error('Não foi possível salvar a obra. Entre novamente e tente de novo.');saved.push(data);renderObras(data.cidade);painel(data);if(chosen){chosen.remove();chosen=null;}$('obra-form').reset();buscaVersao++;$('endereco-msg').textContent='Informe CEP e número para a próxima obra.';$('save-msg').textContent='Obra salva e publicada no mapa para todos os visitantes.';}catch(err){$('save-msg').textContent=err.message||'Não foi possível salvar a obra.';}finally{if(botao)botao.disabled=false;}};
 $('export-obras').onclick=()=>{if(!logged)return;const url=URL.createObjectURL(new Blob([JSON.stringify(saved,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='obras-paulinho.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 </script>
 </html>
