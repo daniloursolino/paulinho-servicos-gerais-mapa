@@ -348,42 +348,64 @@ admin.innerHTML=`<button class="btn" id="admin-open">Área administrativa</butto
 document.querySelector('main').appendChild(admin);
 $('obra-city').innerHTML=cidades.map(c=>'<option>'+c+'</option>').join('');
 const enderecoCampos=document.createElement('div');
-enderecoCampos.innerHTML='<div class="row"><label>CEP<input id="obra-cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="13465-000" required pattern="[0-9]{5}-?[0-9]{3}"></label><label>Número<input id="obra-numero" maxlength="12" required placeholder="123"></label></div><button class="btn" id="buscar-endereco" type="button">Localizar CEP e número no mapa</button><label>Rua<input id="obra-rua" readonly></label><p id="endereco-msg" role="status">A busca consulta ViaCEP e OpenStreetMap. Confira a posição antes de salvar.</p>';
+enderecoCampos.innerHTML='<div class="row"><label>CEP (opcional)<input id="obra-cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="13465-000" pattern="[0-9]{5}-?[0-9]{3}"></label><label>Número (opcional)<input id="obra-numero" maxlength="12" placeholder="123 ou s/n"></label></div><label>Rua<input id="obra-rua" maxlength="200" placeholder="Ex.: Rua das Flores" autocomplete="off"></label><button class="btn" id="buscar-endereco" type="button">Localizar no mapa</button><p id="endereco-msg" role="status">Digite a rua (e o número, se souber) ou use o CEP. Se não achar, clique no mapa para marcar a posição.</p>';
 $('obra-title').parentElement.after(enderecoCampos);
 $('admin-panel').querySelector('p').textContent='Informe CEP e número para localizar a obra. Você também pode ajustar a posição clicando no mapa.';
 let buscaVersao=0,ultimaBusca=0;const cacheEnderecos=new Map();
-function limparPosicao(){buscaVersao++;$('obra-lat').value='';$('obra-lng').value='';$('obra-rua').value='';if(chosen){chosen.remove();chosen=null;}$('endereco-msg').textContent='Endereço alterado. Localize novamente ou escolha a posição no mapa.';}
+let ruaAuto=false;$('obra-rua').addEventListener('input',()=>{ruaAuto=false;});
+function limparPosicao(){buscaVersao++;$('obra-lat').value='';$('obra-lng').value='';if(ruaAuto){$('obra-rua').value='';ruaAuto=false;}if(chosen){chosen.remove();chosen=null;}$('endereco-msg').textContent='Endereço alterado. Localize novamente ou clique no mapa para marcar a posição.';}
 ['obra-cep','obra-numero'].forEach(id=>$(id).addEventListener('input',limparPosicao));
 $('buscar-endereco').onclick=async()=>{
  if(!logged)return;
  const cep=$('obra-cep').value.replace(/\D/g,''),numero=$('obra-numero').value.trim(),msg=$('endereco-msg');
- if(cep.length!==8||!numero){msg.textContent='Informe um CEP com 8 dígitos e o número.';return;}
+ let rua=$('obra-rua').value.trim();
+ if(cep&&cep.length!==8){msg.textContent='O CEP precisa ter 8 dígitos. Se não souber, deixe em branco e digite a rua.';return;}
+ if(!cep&&!rua){msg.textContent='Digite o nome da rua ou informe o CEP.';return;}
  if(Date.now()-ultimaBusca<1500){msg.textContent='Aguarde um instante antes de buscar novamente.';return;}
  ultimaBusca=Date.now();const versao=++buscaVersao;const botao=$('buscar-endereco');botao.disabled=true;
  $('obra-lat').value='';$('obra-lng').value='';if(chosen){chosen.remove();chosen=null;}
- const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15000);
- msg.textContent='Consultando endereço…';
+ const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),25000);
+ const normalizar=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toLowerCase();
+ const espera=ms=>new Promise(r=>setTimeout(r,ms));
+ const dist=(la,lo,c)=>{const[a,b]=centros[c];const k=Math.PI/180,x=(lo-b)*k*Math.cos(la*k),y=(la-a)*k;return Math.sqrt(x*x+y*y)*6371;};
+ const buscar=async params=>{const chave=params.toString();let r=cacheEnderecos.get(chave);if(!r){const resp=await fetch('https://nominatim.openstreetmap.org/search?'+params,{signal:controller.signal});if(!resp.ok)throw new Error('O serviço de localização não respondeu. Clique no mapa para marcar a posição.');r=await resp.json();cacheEnderecos.set(chave,r);}return r;};
+ msg.textContent='Procurando endereço…';
  try{
-  const resposta=await fetch('https://viacep.com.br/ws/'+cep+'/json/',{signal:controller.signal});
-  if(!resposta.ok)throw new Error('Não foi possível consultar o CEP.');
-  const endereco=await resposta.json();if(versao!==buscaVersao||!logged)return;
-  if(endereco.erro)throw new Error('CEP não encontrado.');
-  const normalizar=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toLowerCase();
-  const cidade=cidades.find(c=>normalizar(c)===normalizar(endereco.localidade));
-  if(!cidade||endereco.uf!=='SP')throw new Error('Este CEP fica fora das cinco cidades atendidas.');
-  $('obra-city').value=cidade;$('obra-area').value=endereco.bairro||'';$('obra-rua').value=endereco.logradouro||'';
-  if(!endereco.logradouro)throw new Error('O CEP não identifica uma rua. Escolha a posição no mapa.');
-  msg.textContent=endereco.logradouro+', '+numero+' — '+cidade+'. Localizando…';
-  const query=new URLSearchParams({format:'jsonv2',street:numero+' '+endereco.logradouro,city:cidade,state:'São Paulo',country:'Brasil',postalcode:cep,countrycodes:'br',addressdetails:'1',limit:'1'});
-  const chave=query.toString();let resultados=cacheEnderecos.get(chave);
-  if(!resultados){const r=await fetch('https://nominatim.openstreetmap.org/search?'+query,{signal:controller.signal});if(!r.ok)throw new Error('O serviço de localização não respondeu. Escolha a posição no mapa.');resultados=await r.json();cacheEnderecos.set(chave,resultados);}
+  let cidade=$('obra-city').value,bairro=$('obra-area').value.trim();
+  if(cep.length===8){
+   let endereco=null;
+   try{const resposta=await fetch('https://viacep.com.br/ws/'+cep+'/json/',{signal:controller.signal});if(resposta.ok)endereco=await resposta.json();}catch(e){if(e.name==='AbortError')throw e;}
+   if(versao!==buscaVersao||!logged)return;
+   if(endereco&&!endereco.erro){
+    const achada=cidades.find(c=>normalizar(c)===normalizar(endereco.localidade));
+    if(!achada||endereco.uf!=='SP')throw new Error('Este CEP fica fora das cinco cidades atendidas.');
+    cidade=achada;$('obra-city').value=cidade;
+    if(endereco.bairro&&!bairro){bairro=endereco.bairro;$('obra-area').value=bairro;}
+    if(endereco.logradouro&&(!rua||ruaAuto)){rua=endereco.logradouro;$('obra-rua').value=rua;ruaAuto=true;}
+   }else if(!rua){throw new Error('CEP não encontrado. Digite o nome da rua e busque de novo.');}
+  }
+  if(!rua)throw new Error('O CEP não identifica a rua. Digite o nome da rua e busque de novo, ou clique no mapa.');
+  const base={format:'jsonv2',city:cidade,state:'São Paulo',country:'Brasil',countrycodes:'br',addressdetails:'1',limit:'5'};
+  const tentativas=[];
+  if(numero)tentativas.push({txt:'num',p:{...base,street:numero+' '+rua,...(cep.length===8?{postalcode:cep}:{})}});
+  tentativas.push({txt:'rua',p:{...base,street:rua}});
+  tentativas.push({txt:'livre',p:{format:'jsonv2',q:rua+', '+(bairro?bairro+', ':'')+cidade+', SP, Brasil',countrycodes:'br',addressdetails:'1',limit:'5'}});
+  let ponto=null,tipo='';
+  for(let k=0;k<tentativas.length&&!ponto;k++){
+   if(k>0)await espera(1100);
+   if(versao!==buscaVersao||!logged)return;
+   msg.textContent='Procurando '+rua+(numero?', '+numero:'')+' em '+cidade+'…';
+   const lista=await buscar(new URLSearchParams(tentativas[k].p));
+   const bom=lista.find(x=>Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon))&&dist(Number(x.lat),Number(x.lon),cidade)<=25);
+   if(bom){ponto=bom;tipo=tentativas[k].txt;}
+  }
   if(versao!==buscaVersao||!logged)return;
-  const ponto=resultados[0];if(!ponto)throw new Error('Endereço preenchido, mas o número não foi localizado. Clique na posição correta no mapa.');
-  const lat=Number(ponto.lat),lng=Number(ponto.lon);if(!Number.isFinite(lat)||!Number.isFinite(lng))throw new Error('Localização inválida.');
+  if(!ponto)throw new Error('Não encontrei essa rua no mapa. Confira o nome ou clique no mapa para marcar a posição.');
+  const lat=Number(ponto.lat),lng=Number(ponto.lon);
   $('obra-lat').value=lat.toFixed(6);$('obra-lng').value=lng.toFixed(6);
   if(map){chosen=L.marker([lat,lng]).addTo(map);map.setView([lat,lng],18);host.scrollIntoView({behavior:'smooth',block:'center'});}
-  msg.textContent=(ponto.address?.house_number===numero?'Número localizado.':'Posição aproximada: o número não foi confirmado.')+' Confira no mapa e ajuste com um clique, se necessário.';
- }catch(e){if(versao===buscaVersao)msg.textContent=e.name==='AbortError'?'A busca demorou demais. Tente novamente ou escolha a posição no mapa.':e.message;}
+  msg.textContent=(tipo==='num'&&ponto.address?.house_number===numero?'Número localizado.':'Rua localizada; o número exato não foi confirmado.')+' Confira no mapa e ajuste com um clique, se necessário.';
+ }catch(e){if(versao===buscaVersao)msg.textContent=e.name==='AbortError'?'A busca demorou demais. Tente novamente ou clique no mapa para marcar a posição.':e.message;}
  finally{clearTimeout(timeout);botao.disabled=false;}
 };
 let logged=false,saved=[];const storageKey='paulinho-obras-v1';
