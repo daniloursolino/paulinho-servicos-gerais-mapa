@@ -417,7 +417,7 @@ function criar(tag,cls,txt){const e=document.createElement(tag);if(cls)e.classNa
 let obraAberta=null;
 function painel(o,semRolar){
  const p=painelObra;p.replaceChildren();obraAberta=o||null;
- if(!o){p.appendChild(criar('h3','','Conheça nossas obras'));p.appendChild(criar('p','hint','Selecione uma obra no mapa ou na lista para ver os detalhes e as fotos.'));return;}
+ if(!o){p.appendChild(criar('h3','','Conheça nossas obras'));p.appendChild(criar('p','hint','Selecione uma obra no mapa para ver os detalhes e as fotos.'));return;}
  p.appendChild(criar('h3','',o.titulo));
  const meta=criar('div','meta');meta.appendChild(criar('span','',o.bairro+', '+o.cidade));
  if(o.metragem)meta.appendChild(criar('span','',Number(o.metragem).toLocaleString('pt-BR')+' m²'));
@@ -499,10 +499,10 @@ function editarObra(o){
 }
 function renderObras(c){atual=c;marcar();if(map){markers.clearLayers();map.setView(centros[c]||centros.Americana,c?13:11);}
  bairrosLista.replaceChildren();$('detalhe').replaceChildren();$('crumb').textContent=c||'Obras em Americana e região';
- $('dica').textContent='Selecione um marcador ou uma obra na lista para explorar as fotos.';painel(null);
+ $('dica').textContent='Selecione um marcador no mapa para explorar as fotos.';painel(null);
  saved.filter(o=>!c||o.cidade===c).forEach(o=>{
   if(map)L.marker([o.lat,o.lng],{icon:L.divIcon({className:'obra-pin',html:'📍',iconSize:[32,32],iconAnchor:[16,29]}),title:o.titulo}).addTo(markers).on('click',()=>painel(o));
-  const item=document.createElement('button');item.className='chip';item.type='button';item.textContent=o.titulo+' · '+o.cidade;item.onclick=()=>{if(map)map.setView([o.lat,o.lng],17);painel(o);};bairrosLista.appendChild(item);});
+  });
  $('s3').textContent='Americana';}
 ir=renderObras;voltar=()=>renderObras(null);renderObras(null);
 async function carregarObras(){if(!sb)return;const {data,error}=await sb.from('obras').select('*').order('created_at',{ascending:true});if(error){$('dica').textContent='Não foi possível carregar as obras. Recarregue a página.';return;}saved=(data||[]).filter(o=>centros[o.cidade]&&Number.isFinite(o.lat)&&Number.isFinite(o.lng));renderObras(atual);}
