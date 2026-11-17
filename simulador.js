@@ -149,6 +149,35 @@
     return selected;
   }
 
+  // Fill enclosed gaps left by flaking plaster. Keep exterior gaps and large openings.
+  function fillPlasterGaps(mask, width, height) {
+    const seen = new Uint8Array(mask.length);
+    const queue = new Int32Array(mask.length);
+    const limit = Math.round(mask.length * 0.045);
+    for (let start = 0; start < mask.length; start++) {
+      if (mask[start] || seen[start]) continue;
+      let count = 1, exterior = false;
+      queue[0] = start;
+      seen[start] = 1;
+      function visit(index) {
+        if (seen[index] || mask[index]) return;
+        seen[index] = 1;
+        queue[count++] = index;
+      }
+      for (let i = 0; i < count; i++) {
+        const index = queue[i], x = index % width, y = Math.floor(index / width);
+        if (!x || !y || x === width-1 || y === height-1) exterior = true;
+        if (x) visit(index-1);
+        if (x+1 < width) visit(index+1);
+        if (y) visit(index-width);
+        if (y+1 < height) visit(index+width);
+      }
+      if (!exterior && count <= limit) {
+        for (let i = 0; i < count; i++) mask[queue[i]] = 1;
+      }
+    }
+  }
+
   function enableIdentifyMode() {
     if (!state.photo) { setStatus('Envie uma foto para identificar a superfície.'); return; }
     setMode('identify');
@@ -167,6 +196,7 @@
     const x = Math.max(0,Math.min(w-1,Math.floor(point.x*w/canvas.width)));
     const y = Math.max(0,Math.min(h-1,Math.floor(point.y*h/canvas.height)));
     const mask = surfaceMask(pixels.data,w,h,y*w+x);
+    if ($('fillGaps').checked) fillPlasterGaps(mask,w,h);
     let left=w, top=h, right=0, bottom=0, count=0;
     for (let i=0; i<mask.length; i++) {
       pixels.data[4*i+3] = mask[i]*255;
@@ -404,7 +434,7 @@
   }
   $('zoom').addEventListener('input',()=>{if(!state.photo)return;const base=Math.min(Math.max(280,$('stage').clientWidth-4),canvas.width);canvas.style.width=`${base*+$('zoom').value/100}px`;$('zoomOut').value=$('zoom').value+'%'});
 
-  function resetAll(){if(!state.photo)return;pushHistory();const w=canvas.width,h=canvas.height;state.corners=[{x:w*.18,y:h*.18},{x:w*.82,y:h*.18},{x:w*.88,y:h*.82},{x:w*.12,y:h*.82}];resetMaskToPolygon();$('cols').value=4;$('rows').value=3;$('joint').value=1;$('scale').value=120;$('rotation').value=0;$('opacity').value=88;$('shadow').value=35;updateOutputs();fitCanvas();scheduleRender();setStatus('Simulação reiniciada. Ajuste novamente os quatro cantos.');}
+  function resetAll(){if(!state.photo)return;pushHistory();const w=canvas.width,h=canvas.height;state.corners=[{x:w*.18,y:h*.18},{x:w*.82,y:h*.18},{x:w*.88,y:h*.82},{x:w*.12,y:h*.82}];resetMaskToPolygon();$('cols').value=4;$('rows').value=3;$('joint').value=1;$('scale').value=120;$('rotation').value=0;$('opacity').value=100;$('shadow').value=0;$('fillGaps').checked=true;updateOutputs();fitCanvas();scheduleRender();setStatus('Simulação reiniciada. Ajuste novamente os quatro cantos.');}
   function updateOutputs(){$('colsOut').value=$('cols').value;$('rowsOut').value=$('rows').value;$('total').textContent=$('cols').value+' × '+$('rows').value+' = '+($('cols').value*$('rows').value)+' peças na área completa';$('scaleOut').value=$('scale').value;$('rotationOut').value=$('rotation').value+'°';$('opacityOut').value=$('opacity').value+'%';$('shadowOut').value=$('shadow').value+'%';$('brushOut').value=$('brushSize').value}
   ['cols','rows','joint','scale','rotation','opacity','shadow','brushSize'].forEach(id=>$(id).addEventListener('input',()=>{updateOutputs();scheduleRender()}));
 
