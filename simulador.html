@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#231f20">
+  <meta name="description" content="Simule revestimentos na parede do seu ambiente antes de começar a reforma.">
+  <title>Simulador de Revestimentos | Paulinho Serviços Gerais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Barlow:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="simulador.css">
+</head>
+<body>
+  <a class="skip" href="#simulador">Pular para o simulador</a>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="Voltar para a página inicial">
+      <strong>Paulinho</strong><span>Serviços Gerais</span>
+    </a>
+    <a class="back" href="index.html">← Voltar ao site</a>
+  </header>
+
+  <main id="simulador">
+    <section class="intro">
+      <div>
+        <p class="eyebrow">Visualize antes de reformar</p>
+        <h1>Teste revestimentos na parede ou no piso.</h1>
+        <p>Envie a foto e toque na superfície para aplicar a textura. A imagem é processada no seu aparelho.</p>
+      </div>
+      <ol class="steps" aria-label="Como usar">
+        <li><b>1</b><span>Envie a foto</span></li>
+        <li><b>2</b><span>Clique em Identificar</span></li>
+        <li><b>3</b><span>Escolha a textura</span></li>
+        <li><b>4</b><span>Corrija e baixe</span></li>
+      </ol>
+    </section>
+
+    <section class="workspace" aria-label="Editor de revestimentos">
+      <aside class="panel controls">
+        <div class="control-section">
+          <span class="section-number">01</span>
+          <div>
+            <h2>Foto do ambiente</h2>
+            <p class="help">Use uma foto de frente e com boa iluminação.</p>
+          </div>
+          <label class="upload button primary">
+            <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp">
+            Enviar foto
+          </label>
+        </div>
+
+        <div class="control-section">
+          <span class="section-number">02</span>
+          <div>
+            <h2>Textura</h2>
+            <p class="help">As opções abaixo são demonstrações e podem ser substituídas.</p>
+          </div>
+          <div id="textureList" class="texture-list" role="radiogroup" aria-label="Texturas disponíveis"></div>
+          <label class="upload button secondary compact">
+            <input id="textureInput" type="file" accept="image/jpeg,image/png,image/webp">
+            Usar minha textura
+          </label>
+        </div>
+
+        <div class="control-section sliders">
+          <span class="section-number">03</span>
+          <div><h2>Ajustes</h2><p class="help">Regule o tamanho das peças e o acabamento.</p></div>
+          <label>Peças na largura <output id="colsOut">4</output><input id="cols" type="range" min="1" max="20" value="4"></label>
+          <label>Fileiras na altura <output id="rowsOut">3</output><input id="rows" type="range" min="1" max="20" value="3"></label>
+          <p id="total" class="help" aria-live="polite"></p>
+          <label>Junta entre peças <select id="joint"><option value="0">Sem junta</option><option value="1" selected>Fina</option><option value="3">Larga</option></select></label>
+          <label>Zoom dentro da peça <output id="scaleOut">120</output><input id="scale" type="range" min="120" max="300" value="120"></label>
+          <label>Rotação <output id="rotationOut">0°</output><input id="rotation" type="range" min="-45" max="45" value="0"></label>
+          <label>Intensidade <output id="opacityOut">88%</output><input id="opacity" type="range" min="35" max="100" value="88"></label>
+          <label>Preservar sombras <output id="shadowOut">35%</output><input id="shadow" type="range" min="0" max="70" value="35"></label>
+        </div>
+      </aside>
+
+      <div class="editor-column">
+        <div class="toolbar" role="toolbar" aria-label="Ferramentas do simulador">
+          <div class="tool-group">
+            <button class="tool identify" data-mode="identify" type="button" aria-pressed="false">✦ Identificar área</button>
+            <button class="tool active" data-mode="corners" type="button" aria-pressed="true">◇ Cantos</button>
+            <button class="tool" data-mode="brush" type="button" aria-pressed="false">● Pincel</button>
+            <button class="tool" data-mode="eraser" type="button" aria-pressed="false">◌ Borracha</button>
+          </div>
+          <div class="tool-group">
+            <label class="brush-size">Pincel <input id="brushSize" type="range" min="8" max="100" value="34"><output id="brushOut">34</output></label>
+            <button id="undoBtn" class="tool" type="button" disabled>↶ Desfazer</button>
+          </div>
+        </div>
+
+        <div id="stage" class="stage" tabindex="0" aria-label="Área de edição da foto">
+          <canvas id="canvas" width="1200" height="760"></canvas>
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon" aria-hidden="true">▱</div>
+            <h2>Comece com uma foto do ambiente</h2>
+            <p>Depois, clique em “Identificar área” e toque na parede ou no piso.</p>
+            <label class="upload button primary">
+              <input id="emptyPhotoInput" type="file" accept="image/jpeg,image/png,image/webp">
+              Escolher foto
+            </label>
+          </div>
+        </div>
+
+        <div class="canvas-actions">
+          <div class="zoom-control">
+            <label for="zoom">Zoom</label>
+            <input id="zoom" type="range" min="50" max="150" value="100">
+            <output id="zoomOut">100%</output>
+          </div>
+          <div class="action-buttons">
+            <button id="beforeBtn" class="button secondary" type="button" disabled>Antes/depois</button>
+            <button id="resetBtn" class="button secondary" type="button" disabled>Reiniciar</button>
+            <button id="downloadBtn" class="button primary" type="button" disabled>Baixar imagem</button>
+          </div>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite">Envie uma foto para começar.</p>
+      </div>
+    </section>
+
+    <section class="tips">
+      <div><span>01</span><h2>Identifique a superfície</h2><p>Ative “Identificar área” e clique uma vez na parede ou no piso desejado.</p></div>
+      <div><span>02</span><h2>Retire os obstáculos</h2><p>Use a borracha sobre portas, janelas, quadros e móveis que ficam na frente.</p></div>
+      <div><span>03</span><h2>Confira a escala</h2><p>O resultado é uma simulação visual. Confirme medidas e paginação antes da obra.</p></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Paulinho Serviços Gerais · Americana e região</p>
+    <a href="https://wa.me/5519992454140?text=Ol%C3%A1%21%20Usei%20o%20simulador%20de%20revestimentos%20e%20gostaria%20de%20um%20or%C3%A7amento." target="_blank" rel="noopener">Pedir orçamento pelo WhatsApp ↗</a>
+  </footer>
+  <script src="simulador.js"></script>
+</body>
+</html>
